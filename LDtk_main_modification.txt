@@ -1,0 +1,91 @@
+--------------------------------------------------------------------------------
+LDtk main.js Modification for Argument Filtering
+--------------------------------------------------------------------------------
+
+[概要]
+LDtk (ソースビルド版) では、dn_js_ElectronTools.getRawArgs() 関数が実行時引数 (process.argv) を
+そのまま返しており、"electron . file.ldtk" のように起動すると、"." が余計に混入して
+“Project file not found” エラーが起こるケースがありました。
+
+このドキュメントは、コンパイル済み main.js 内で dn_js_ElectronTools.getRawArgs() を
+直接修正し、“.” を取り除く対策を記録したものです。
+
+--------------------------------------------------------------------------------
+[修正ファイル]
+- root\app\assets\main.js
+  （もしくは app/assets/main.js がコンパイル後に生成された実行ファイル）
+
+--------------------------------------------------------------------------------
+[修正箇所の検索方法]
+main.js 内で下記のような定義を探します:
+
+    dn_js_ElectronTools.getRawArgs = function() {
+        if(electron_main_App == null) {
+            ...
+        } else {
+            return process.argv;
+        }
+    };
+
+この部分が、LDtk (Electron) のメインプロセスで「起動時の引数」を返す関数です。
+
+--------------------------------------------------------------------------------
+[修正前コード例]
+dn_js_ElectronTools.getRawArgs = function() {
+  if (electron_main_App == null) {
+      try {
+          return electron_renderer_IpcRenderer.sendSync("getRawArgs");
+      } catch (_g) {
+          return [];
+      }
+  } else {
+      return process.argv;
+  }
+};
+
+--------------------------------------------------------------------------------
+[修正後コード (2024-12-23 時点)]
+dn_js_ElectronTools.getRawArgs = function() {
+  if (electron_main_App == null) {
+      // === ElectronのRendererプロセス側 ===
+      try {
+          return electron_renderer_IpcRenderer.sendSync("getRawArgs");
+      } catch (_g) {
+          return [];
+      }
+  } else {
+      // === ElectronのMainプロセス側 ===
+      // 1. 現状の引数をコピー
+      let rawArgs = process.argv.slice();
+
+      // 2. 不要な "." 引数を除外
+      //    (例: "electron . file.ldtk" → rawArgs に "`.`" が紛れ込む)
+      rawArgs = rawArgs.filter(arg => arg !== ".");
+
+      // 必要に応じて console.log で動作確認も可能
+      // console.log("[DEBUG] after filtering:", rawArgs);
+
+      return rawArgs;
+  }
+};
+
+--------------------------------------------------------------------------------
+[変更の目的]
+- "electron . SomeProject.ldtk" のように起動した際、
+process.argv に "." が混在し、LDtk が "(. SomeProject.ldtk)" と解釈してしまう問題を回避
+- 余分な "." を除外して、"SomeProject.ldtk" だけを正しく認識させる
+
+--------------------------------------------------------------------------------
+[注意点]
+1. ここで修正した "main.js" は **コンパイル後のファイル** です。
+ - 再コンパイルを行うと上書きされる恐れがあるため、再ビルド時にはこの修正を再度適用する必要があります。
+2. Haxe ソース (.hx) 側を修正して再コンパイルする方が望ましいですが、
+ 事情により再コンパイルができない場合はこの方法でも動作します。
+3. パスの指定はあくまでローカル環境向けです。  
+ 他のPCや環境で使う場合、実際のルートディレクトリが変わるとパスも異なることに注意してください。
+
+--------------------------------------------------------------------------------
+[最終更新]
+- 2024-12-23
+
+以上
