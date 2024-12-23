@@ -6,8 +6,9 @@ cd /d "%~dp0"
 REM --- 「app」ディレクトリに移動 ---
 cd app
 
-REM --- npm で実行 ---
-npm run start-test-file
+REM --- start コマンドで、LDtk(Electron)を別プロセスとして実行 ---
+REM --- "" はタイトル(ウィンドウ名)を空にする指定
+start "" npm run start -- %1
 
-REM --- 処理が終わったらキー入力を待つ場合 ---
-REM pause
+REM --- バッチファイル自身を終了して、コマンドプロンプトを閉じる ---
+exit
