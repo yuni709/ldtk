@@ -1,14 +1,14 @@
 @echo off
 
-REM --- 現在のスクリプトが置かれているフォルダに移動 ---
+REM --- このバッチファイル(.bat)が置かれているフォルダに移動 ---
 cd /d "%~dp0"
 
-REM --- 「app」ディレクトリに移動 ---
+REM --- app ディレクトリに移動 ---
 cd app
 
-REM --- start コマンドで、LDtk(Electron)を別プロセスとして実行 ---
-REM --- "" はタイトル(ウィンドウ名)を空にする指定
-start "" npm run start -- %1
+REM --- 相対パスで electron.exe を指定して起動 ---
+REM     "node_modules\electron\dist\electron.exe" のように書いてもOK
+start "" ".\node_modules\electron\dist\electron.exe" . %1
 
-REM --- バッチファイル自身を終了して、コマンドプロンプトを閉じる ---
+REM --- 実行後、このバッチファイルのウィンドウを閉じる ---
 exit
